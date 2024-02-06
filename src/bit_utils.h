@@ -1,0 +1,1 @@
+/* Inline functions must be included in the source files that use them. */

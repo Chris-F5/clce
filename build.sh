@@ -1,0 +1,14 @@
+#!/bin/sh
+
+rm -rf obj
+rm -f output
+mkdir obj
+
+CFLAGS="-O2 -pg -Wall"
+gcc src/main.c -o obj/main.o -c $CFLAGS
+gcc src/bitboards.c -o obj/bitboards.o -c $CFLAGS
+gcc src/fen.c -o obj/fen.o -c $CFLAGS
+gcc src/make_move.c -o obj/make_move.o -c $CFLAGS
+gcc src/move_gen.c -o obj/move_gen.o -c $CFLAGS
+gcc src/utils.c -o obj/utils.o -c $CFLAGS
+gcc obj/*.o -o output -pg
