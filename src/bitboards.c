@@ -285,11 +285,5 @@ get_bishop_attack_set(int bishop_square, uint64_t blockers)
   magic_square = &magic_squares[bishop_square];
   relevant_blockers = blockers & bishop_relevance_masks[bishop_square];
   hash = (relevant_blockers * magic_square->magic) >> (64 - magic_square->bits);
-  /*
-  if (attack_table[magic_square->attack_table_offset + hash]) {
-    print_bitmap(attack_table[magic_square->attack_table_offset + hash]);
-    printf("%d %ld\n", bishop_square, hash);
-  }
-  */
   return attack_table[magic_square->attack_table_offset + hash];
 }

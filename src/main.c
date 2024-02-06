@@ -108,7 +108,7 @@ perft_test(void)
   struct board board;
   if (parse_fen(&board, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"))
     exit(1);
-  perft(&board, 6, 1);
+  perft(&board, 7, 1);
   /* assert(perft(&board, 4, 1) == 119060324); */
   /*
   if (parse_fen(&board, "rnbqkbnr/pppp1ppp/4p3/8/8/BP6/P1PPPPPP/RN1QKBNR b KQkq - 1 2"))

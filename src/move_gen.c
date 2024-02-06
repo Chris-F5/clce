@@ -119,8 +119,7 @@ generate_king_moves(const struct board *board, Move *moves)
   const int color = board->flags & BOARD_FLAG_WHITE_TO_PLAY ? 1 : 0;
   king = board->type_bitboards[PIECE_TYPE_KING] & board->color_bitboards[color];
   assert(king);
-  origin = pop_lss(&king);
-  assert(king == 0);
+  origin = lss(king);
   attacks = king_attack_table[origin] & ~board->color_bitboards[color];
   while (attacks) {
     dest = pop_lss(&attacks);
@@ -238,15 +237,24 @@ attack_set(const struct board *board, int color)
   return attacks;
 }
 
-int
+long
 perft(const struct board *board, int depth, int print)
 {
   Move moves[256];
   struct board next_board;
-  int move_count, c, sum;
+  int move_count, c;
+  long sum;
   move_count = generate_moves(board, moves) - moves;
-  if (depth == 1)
+  if (depth == 1) {
+    if (print) {
+      for (int i = 0; i < move_count; i++) {
+        print_move(moves[i]);
+        printf(": 1\n");
+      }
+      printf("%d\n", move_count);
+    }
     return move_count;
+  }
   sum = 0;
   for (int i = 0; i < move_count; i++) {
     next_board = *board;
@@ -258,7 +266,7 @@ perft(const struct board *board, int depth, int print)
     }
     sum += c;
   }
-  if (print) printf("%d\n", sum);
+  if (print) printf("%ld\n", sum);
   return sum;
 }
 
@@ -266,6 +274,8 @@ Move *
 generate_moves(const struct board *board, Move *moves)
 {
   const int color = board->flags & BOARD_FLAG_WHITE_TO_PLAY ? 1 : 0;
+  int king_sq;
+  long in_check;
   struct board copy;
   Move *base = moves;
   Bitboard attacks, new_attacks;
@@ -277,15 +287,15 @@ generate_moves(const struct board *board, Move *moves)
   moves = generate_queen_moves(board, moves);
   moves = generate_king_moves(board, moves);
   attacks = attack_set(board, !color); /* Expensive operation, avoid if possible. */
+  in_check = board->type_bitboards[PIECE_TYPE_KING] & attacks;
+  king_sq = lss(board->type_bitboards[PIECE_TYPE_KING] & board->color_bitboards[color]);
   while (base != moves) {
-    if (   ((set_bit(get_move_origin(*base)) | board->type_bitboards[PIECE_TYPE_KING]) & attacks) == 0
-        && (set_bit(get_move_origin(*base)) & board->type_bitboards[PIECE_TYPE_KING]) == 0
+    if (!in_check && get_move_origin(*base) != king_sq
+        && ( set_bit(get_move_origin(*base)) & attacks ) == 0
         && get_move_special_type(*base) != SPECIAL_MOVE_EN_PASSANT) {
       base++;
       continue;
     }
-    /* TODO: Check pinned heuristic to skip legality check. */
-
     copy = *board;
     make_move(&copy, *base);
     new_attacks = attack_set(&copy, !color);

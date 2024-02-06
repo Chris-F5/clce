@@ -4,7 +4,7 @@ rm -rf obj
 rm -f output
 mkdir obj
 
-CFLAGS="-O2 -pg -Wall"
+CFLAGS="-O2 -g -pg -Wall"
 gcc src/main.c -o obj/main.o -c $CFLAGS
 gcc src/bitboards.c -o obj/bitboards.o -c $CFLAGS
 gcc src/fen.c -o obj/fen.o -c $CFLAGS

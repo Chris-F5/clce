@@ -81,7 +81,7 @@ uint64_t get_bishop_attack_set(int bishop_square, uint64_t blockers);
 
 /* move_gen.c */
 Move *generate_moves(const struct board *board, Move *moves);
-int perft(const struct board *board, int depth, int print);
+long perft(const struct board *board, int depth, int print);
 
 /* make_move.c */
 void make_move(struct board *board, Move move);
@@ -115,6 +115,12 @@ pop_lsb(Bitboard *b)
   bit = *b & -*b;
   *b &= *b - 1;
   return bit;
+}
+static inline int
+lss(Bitboard b)
+{
+  assert(b);
+  return __builtin_ctzl(b);
 }
 static inline int
 pop_lss(Bitboard *b)
