@@ -102,18 +102,6 @@ debug_move_gen(void)
   }
 }
 
-static void
-perft_test(void)
-{
-  struct board board;
-  if (parse_fen(&board, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"))
-    exit(1);
-   assert(perft(&board, 4, 0) == 197281);
-  if (parse_fen(&board, "6k1/1p3qb1/2pPb1p1/5p1p/3Pp2P/PP4P1/K3B3/2Q2nR1 b - - 0 32"))
-    exit(1);
-  assert(perft(&board, 4, 0) == 971796);
-}
-
 int
 main(int argc, char **argv)
 {
@@ -171,7 +159,7 @@ main(int argc, char **argv)
 
   /* print_best_magics(); */
   init_bitboards();
-  perft_test();
+  run_tests();
   /* debug_move_gen(); */
 
   return 0;

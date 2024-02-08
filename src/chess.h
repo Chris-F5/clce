@@ -52,6 +52,8 @@ struct board {
 #define BLACK_KING_CASTLE_BLOCKERS (set_bit(61) | set_bit(62))
 #define BLACK_QUEEN_CASTLE_BLOCKERS (set_bit(57) | set_bit(58) | set_bit(59))
 
+#define CHECKMATE_EVALUATION 655535
+
 /*
  * 0-5   destination square
  * 6-11  origin square
@@ -61,6 +63,9 @@ struct board {
 typedef uint16_t Move;
 
 /* FUNCTION DECLARATIONS */
+
+/* tests.c */
+void run_tests(void);
 
 /* fen.c */
 int parse_fen(struct board *board, const char *fen);
@@ -92,6 +97,12 @@ long perft(const struct board *board, int depth, int print);
 
 /* make_move.c */
 void make_move(struct board *board, Move move);
+
+/* evaluate.c */
+int evaluate_board(const struct board *board);
+
+/* find_move.c */
+int minimax(struct board *board, int depth, int alpha, int beta, Move *best_move);
 
 /* INLINE FUNCTIONS */
 

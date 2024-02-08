@@ -260,7 +260,7 @@ perft(const struct board *board, int depth, int print)
 {
   Move moves[256];
   struct board next_board;
-  int move_count, c;
+  int move_count, c, i;
   long sum;
   move_count = generate_moves(board, moves) - moves;
   if (depth == 1) {
@@ -274,7 +274,7 @@ perft(const struct board *board, int depth, int print)
     return move_count;
   }
   sum = 0;
-  for (int i = 0; i < move_count; i++) {
+  for (i = 0; i < move_count; i++) {
     next_board = *board;
     make_move(&next_board, moves[i]);
     c = perft(&next_board, depth - 1, 0);
