@@ -149,19 +149,20 @@ parse_fen(struct board *board, const char *fen)
     fprintf(stderr, "failed to parse fen: expected space after turn field but found '%c'\n", c);
     return 1;
   }
+  board->flags |= BOARD_FLAGS_WHITE_CASTLE | BOARD_FLAGS_BLACK_CASTLE;
   while ( (c = *fen++) != ' ') {
     switch (c) {
     case 'k':
-      board->flags |= BOARD_FLAG_BLACK_CASTLE_KING;
+      board->flags &= ~BOARD_FLAG_BLACK_CASTLE_KING;
       break;
     case 'q':
-      board->flags |= BOARD_FLAG_BLACK_CASTLE_QUEEN;
+      board->flags &= ~BOARD_FLAG_BLACK_CASTLE_QUEEN;
       break;
     case 'K':
-      board->flags |= BOARD_FLAG_WHITE_CASTLE_KING;
+      board->flags &= ~BOARD_FLAG_WHITE_CASTLE_KING;
       break;
     case 'Q':
-      board->flags |= BOARD_FLAG_WHITE_CASTLE_QUEEN;
+      board->flags &= ~BOARD_FLAG_WHITE_CASTLE_QUEEN;
       break;
     case '-':
       break;

@@ -28,6 +28,8 @@ typedef uint16_t BoardFlags;
 #define BOARD_FLAG_WHITE_CASTLE_QUEEN 0x0004
 #define BOARD_FLAG_BLACK_CASTLE_KING  0x0008
 #define BOARD_FLAG_BLACK_CASTLE_QUEEN 0x0010
+#define BOARD_FLAGS_WHITE_CASTLE (BOARD_FLAG_WHITE_CASTLE_KING | BOARD_FLAG_WHITE_CASTLE_QUEEN)
+#define BOARD_FLAGS_BLACK_CASTLE (BOARD_FLAG_BLACK_CASTLE_KING | BOARD_FLAG_BLACK_CASTLE_QUEEN)
 typedef uint64_t Bitboard;
 struct board {
   Bitboard type_bitboards[6];
@@ -44,6 +46,11 @@ struct board {
 #define SPECIAL_MOVE_PROMOTE    1
 #define SPECIAL_MOVE_EN_PASSANT 2
 #define SPECIAL_MOVE_CASTLING   3
+
+#define WHITE_KING_CASTLE_BLOCKERS (set_bit(5) | set_bit(6))
+#define WHITE_QUEEN_CASTLE_BLOCKERS (set_bit(1) | set_bit(2) | set_bit(3))
+#define BLACK_KING_CASTLE_BLOCKERS (set_bit(61) | set_bit(62))
+#define BLACK_QUEEN_CASTLE_BLOCKERS (set_bit(57) | set_bit(58) | set_bit(59))
 
 /*
  * 0-5   destination square
@@ -184,6 +191,14 @@ en_passant_move(int origin, int dest)
   assert(dest >= 0 && dest < 64);
   assert(origin >= 0 && origin < 64);
   return dest | (origin << 6) | (SPECIAL_MOVE_EN_PASSANT << 12);
+}
+static inline Move
+castle_move(int color, int king_side)
+{
+  int dest, origin;
+  origin = color ? 4 : 60;
+  dest = origin + (king_side ? 2 : -2);
+  return dest | (origin << 6) | (SPECIAL_MOVE_CASTLING << 12);
 }
 static inline int
 get_move_origin(Move move)

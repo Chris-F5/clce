@@ -9,6 +9,12 @@
 
 static Move *generate_pawn_moves(const struct board *board, Move *moves);
 static Move *generate_knight_moves(const struct board *board, Move *moves);
+static Move * generate_king_moves(const struct board *board, Move *moves,
+    uint64_t opponent_attack_set);
+static Move * generate_bishop_moves(const struct board *board, Move *moves);
+static Move * generate_rook_moves(const struct board *board, Move *moves);
+static Move * generate_queen_moves(const struct board *board, Move *moves);
+static Bitboard attack_set(const struct board *board, int color);
 
 static Move *
 generate_pawn_moves(const struct board *board, Move *moves)
@@ -112,7 +118,8 @@ generate_knight_moves(const struct board *board, Move *moves)
 }
 
 static Move *
-generate_king_moves(const struct board *board, Move *moves)
+generate_king_moves(const struct board *board, Move *moves,
+    uint64_t opponent_attack_set)
 {
   uint64_t king, attacks;
   int origin, dest;
@@ -124,6 +131,17 @@ generate_king_moves(const struct board *board, Move *moves)
   while (attacks) {
     dest = pop_lss(&attacks);
     *moves++ = basic_move(origin, dest);
+  }
+  /* castling */
+  if ((opponent_attack_set & (color ? set_bit(4) : set_bit(60))) == 0 &&
+      ~board->flags & (color ? BOARD_FLAGS_WHITE_CASTLE : BOARD_FLAGS_BLACK_CASTLE)) {
+    attacks = opponent_attack_set | board->color_bitboards[0] | board->color_bitboards[1];
+    if ( (board->flags & (color ? BOARD_FLAG_WHITE_CASTLE_KING : BOARD_FLAG_BLACK_CASTLE_KING)) == 0
+        && (attacks & (color ? WHITE_KING_CASTLE_BLOCKERS : BLACK_KING_CASTLE_BLOCKERS)) == 0)
+      *moves++ = castle_move(color, 1);
+    if ( (board->flags & (color ? BOARD_FLAG_WHITE_CASTLE_QUEEN : BOARD_FLAG_BLACK_CASTLE_QUEEN)) == 0
+        && (attacks & (color ? WHITE_QUEEN_CASTLE_BLOCKERS : BLACK_QUEEN_CASTLE_BLOCKERS)) == 0)
+      *moves++ = castle_move(color, 0);
   }
   return moves;
 }
@@ -278,20 +296,21 @@ generate_moves(const struct board *board, Move *moves)
   long in_check;
   struct board copy;
   Move *base = moves;
-  Bitboard attacks, new_attacks;
+  Bitboard opponent_attack_set, new_attacks;
+
+  opponent_attack_set = attack_set(board, !color);
+  in_check = board->type_bitboards[PIECE_TYPE_KING] & opponent_attack_set;
+  king_sq = lss(board->type_bitboards[PIECE_TYPE_KING] & board->color_bitboards[color]);
 
   moves = generate_pawn_moves(board, moves);
   moves = generate_knight_moves(board, moves);
   moves = generate_bishop_moves(board, moves);
   moves = generate_rook_moves(board, moves);
   moves = generate_queen_moves(board, moves);
-  moves = generate_king_moves(board, moves);
-  attacks = attack_set(board, !color); /* Expensive operation, avoid if possible. */
-  in_check = board->type_bitboards[PIECE_TYPE_KING] & attacks;
-  king_sq = lss(board->type_bitboards[PIECE_TYPE_KING] & board->color_bitboards[color]);
+  moves = generate_king_moves(board, moves, opponent_attack_set);
   while (base != moves) {
     if (!in_check && get_move_origin(*base) != king_sq
-        && ( set_bit(get_move_origin(*base)) & attacks ) == 0
+        && ( set_bit(get_move_origin(*base)) & opponent_attack_set ) == 0
         && get_move_special_type(*base) != SPECIAL_MOVE_EN_PASSANT) {
       base++;
       continue;
