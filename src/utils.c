@@ -58,6 +58,8 @@ void
 print_move(Move move)
 {
   printf("%s%s", square_names[(move >> 6) & 0x3f], square_names[move & 0x3f]);
+  if (get_move_special_type(move) == SPECIAL_MOVE_PROMOTE)
+    putchar(piece_chars[get_move_promote_piece(move)]);
 }
 
 void

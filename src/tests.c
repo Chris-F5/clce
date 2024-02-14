@@ -38,6 +38,7 @@ test_evaluation(void)
 static void
 test_minimax(void)
 {
+  /*
   struct board board;
   int score;
   Move move;
@@ -46,6 +47,7 @@ test_minimax(void)
   score = minimax(&board, 8, -CHECKMATE_EVALUATION, CHECKMATE_EVALUATION, &move);
   print_move(move);
   printf("\nscore: %d\n", score);
+  */
 }
 
 void

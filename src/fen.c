@@ -199,6 +199,8 @@ parse_fen(struct board *board, const char *fen)
     }
   }
   while ( (c = *fen++) != '\0') {
+    if (c == '\n')
+      break;
     if (c >= '0' && c <= '9') {
       board->fullmove_clock = board->fullmove_clock * 10 + c - '0';
     } else {

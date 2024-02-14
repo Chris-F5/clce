@@ -4,6 +4,7 @@
  * #include <stddef.h>
  * #include <assert.h>
  * #include <stdlib.h>
+ * #include <time.h>
  */
 
 /* TYPE DEFINITIONS AND CONSTANTS */
@@ -102,7 +103,7 @@ void make_move(struct board *board, Move move);
 int evaluate_board(const struct board *board);
 
 /* find_move.c */
-int minimax(struct board *board, int depth, int alpha, int beta, Move *best_move);
+Move find_move(const struct board *board, int milliseconds);
 
 /* INLINE FUNCTIONS */
 
