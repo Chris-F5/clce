@@ -61,7 +61,7 @@ find_move(const struct board *board, int milliseconds)
   clock_t deadline;
   int depth;
   deadline = clock() + (milliseconds * CLOCKS_PER_SEC)/1000;
-  depth = 3;
+  depth = 2;
   move = 0;
   do {
     best_move = move;

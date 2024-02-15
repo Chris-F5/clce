@@ -127,6 +127,7 @@ repl_start(void)
     move = find_move(&board, move_time);
     print_move(move);
     printf("\n");
+    fflush(stdout);
   }
 }
 

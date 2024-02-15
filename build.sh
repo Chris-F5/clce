@@ -1,7 +1,7 @@
 #!/bin/sh
 
 rm -rf obj
-rm -f output
+rm -f clce
 mkdir obj
 
 CFLAGS="-O2 -g -pg -Wall"
@@ -14,4 +14,4 @@ gcc src/move_gen.c -o obj/move_gen.o -c $CFLAGS
 gcc src/evaluate.c -o obj/evaluate.o -c $CFLAGS
 gcc src/find_move.c -o obj/find_move.o -c $CFLAGS
 gcc src/utils.c -o obj/utils.o -c $CFLAGS
-gcc obj/*.o -o output -pg
+gcc obj/*.o -o clce -pg
