@@ -18,4 +18,4 @@ def play_game(white: CLCE, black: CLCE, move_time: int):
   print(chess.Board().variation_san(moves), flush=True)
   return board.outcome()
 
-play_game(CLCE('./clce'), CLCE('./clce'), 200)
+play_game(CLCE('./clce'), CLCE('./clce'), 2000)

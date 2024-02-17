@@ -20,8 +20,12 @@ make_move(struct search_state *state, Move move)
   const int piece_type = get_piece_type(bstate->mailbox, origin);
   int castle_origin, castle_dest;
 
+  state->fullmove_clock++;
+  bstate->halfmove_clock++;
+
   /* capture */
   if (bstate->color_bitboards[!color] & set_bit(dest)) {
+    bstate->halfmove_clock = 0;
     /* clear captured piece */
     capture = get_piece_type(bstate->mailbox, dest);
     bstate->type_bitboards[capture] ^= set_bit(dest);
@@ -49,6 +53,7 @@ make_move(struct search_state *state, Move move)
 
   /* pawn specials */
   if (piece_type == PIECE_TYPE_PAWN) {
+    bstate->halfmove_clock = 0;
     if ((origin ^ dest) == 16) { /* move two */
       their_pawns = bstate->color_bitboards[!color] & bstate->type_bitboards[PIECE_TYPE_PAWN];
       if ((set_bit(dest) << 1) & 0xfefefefefefefefe & their_pawns
@@ -124,8 +129,6 @@ no_castle:
 
   bstate->flags ^= BOARD_FLAG_WHITE_TO_PLAY;
   bstate->non_pawn_hash ^= zobrist_black_number;
-  state->fullmove_clock++;
-  /* TODO: halfmove clocks. */
 }
 
 void
