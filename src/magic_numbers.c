@@ -1,8 +1,9 @@
-struct magic_square {
-  uint64_t magic; 
-  int bits;
-  int attack_table_offset;
-} magic_squares[] = {
+#include <stdint.h>
+#include <stddef.h>
+#include <assert.h>
+#include <stdlib.h>
+#include "chess.h"
+struct magic_square magic_squares[] = {
   /* bishops */
   [  0] = {0x3020450208204080,  6, 0},
   [  1] = {0x00e008021480200a,  5, 64},

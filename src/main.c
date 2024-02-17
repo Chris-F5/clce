@@ -46,6 +46,7 @@ read_promote_piece(void)
   }
 }
 
+/*
 static void
 debug_move_gen(void)
 {
@@ -101,13 +102,14 @@ debug_move_gen(void)
     make_move(&board, move);
   }
 }
+*/
 
 void
 repl_start(void)
 {
   char buffer[MAX_FEN_SIZE + 1];
   int i, move_time;
-  struct board board;
+  struct search_state search_state;
   Move move;
   for (;;) {
     if (fgets(buffer, sizeof(buffer), stdin) == NULL)
@@ -120,11 +122,11 @@ repl_start(void)
         break;
       }
     }
-    if (parse_fen(&board, buffer)) {
+    if (parse_fen(&search_state, buffer)) {
       fprintf(stderr, "Invalid fen.\n");
       exit(1);
     }
-    move = find_move(&board, move_time);
+    move = find_move(&search_state, move_time);
     print_move(move);
     printf("\n");
     fflush(stdout);
@@ -189,6 +191,8 @@ main(int argc, char **argv)
   /* print_best_magics(); */
   init_bitboards();
   run_tests();
+  printf("READY\n");
+  fflush(stdout);
   repl_start();
   /* debug_move_gen(); */
 

@@ -4,12 +4,7 @@
  * #include <stddef.h>
  * #include <assert.h>
  * #include <stdlib.h>
- * #include <time.h>
  */
-
-/* TYPE DEFINITIONS AND CONSTANTS */
-
-#define MAX_FEN_SIZE (8 * 8 + 7 + 1 + 4 + 2 + 6 + 6 + 5)
 
 /* promote pieces fit in 2 bits */
 #define PIECE_TYPE_KNIGHT 0
@@ -23,7 +18,6 @@
 #define COLOR_BLACK 0
 #define COLOR_WHITE 1
 
-typedef uint16_t BoardFlags;
 #define BOARD_FLAG_WHITE_TO_PLAY      0x0001
 #define BOARD_FLAG_WHITE_CASTLE_KING  0x0002
 #define BOARD_FLAG_WHITE_CASTLE_QUEEN 0x0004
@@ -31,17 +25,6 @@ typedef uint16_t BoardFlags;
 #define BOARD_FLAG_BLACK_CASTLE_QUEEN 0x0010
 #define BOARD_FLAGS_WHITE_CASTLE (BOARD_FLAG_WHITE_CASTLE_KING | BOARD_FLAG_WHITE_CASTLE_QUEEN)
 #define BOARD_FLAGS_BLACK_CASTLE (BOARD_FLAG_BLACK_CASTLE_KING | BOARD_FLAG_BLACK_CASTLE_QUEEN)
-typedef uint64_t Bitboard;
-struct board {
-  Bitboard type_bitboards[6];
-  Bitboard color_bitboards[2];
-  uint8_t mailbox[32]; /* 4-bits per piece */
-
-  BoardFlags flags;
-  int16_t en_passant_square;
-  uint16_t halfmove_clock;
-  uint16_t fullmove_clock;
-};
 
 #define SPECIAL_MOVE_NONE       0
 #define SPECIAL_MOVE_PROMOTE    1
@@ -53,7 +36,13 @@ struct board {
 #define BLACK_KING_CASTLE_BLOCKERS (set_bit(61) | set_bit(62))
 #define BLACK_QUEEN_CASTLE_BLOCKERS (set_bit(57) | set_bit(58) | set_bit(59))
 
+#define MAX_FEN_SIZE (8 * 8 + 7 + 1 + 4 + 2 + 6 + 6 + 5)
+
+#define MAX_SEARCH_PLY 128
 #define CHECKMATE_EVALUATION 655535
+
+typedef uint64_t Bitboard;
+typedef uint16_t BoardFlags;
 
 /*
  * 0-5   destination square
@@ -62,14 +51,34 @@ struct board {
  * 14-15 promote piece type
  */
 typedef uint16_t Move;
+struct board_state {
+  Bitboard type_bitboards[6];
+  Bitboard color_bitboards[2];
+  uint8_t mailbox[32]; /* 4-bits per piece */
 
-/* FUNCTION DECLARATIONS */
+  BoardFlags flags;
+  int16_t en_passant_square;
+  uint16_t halfmove_clock;
+
+  uint64_t pawn_hash, non_pawn_hash;
+};
+struct search_state {
+  uint16_t search_ply;
+  uint16_t fullmove_clock;
+  struct board_state board_states[MAX_SEARCH_PLY];
+};
+
+struct magic_square {
+  uint64_t magic; 
+  int bits;
+  int attack_table_offset;
+};
 
 /* tests.c */
 void run_tests(void);
 
 /* fen.c */
-int parse_fen(struct board *board, const char *fen);
+int parse_fen(struct search_state *state, const char *fen);
 /*
 void write_fen(const struct board *board, char *buf);
 */
@@ -81,7 +90,7 @@ void *xmalloc(size_t len);
 void *xrealloc(void *p, size_t len);
 void print_bitmap(uint64_t bitmap);
 void print_move(Move move);
-void print_board(const struct board *board);
+/* void print_board(const struct board *board); */
 void read_buffer(char *buffer, int len);
 
 /* bitboards.c */
@@ -93,19 +102,34 @@ uint64_t get_rook_attack_set(int rook_square, uint64_t blockers);
 uint64_t get_bishop_attack_set(int bishop_square, uint64_t blockers);
 
 /* move_gen.c */
-Move *generate_moves(const struct board *board, Move *moves);
-long perft(const struct board *board, int depth, int print);
+Move *generate_moves(struct search_state *state, Move *moves);
+long perft(struct search_state *state, int depth, int print);
 
 /* make_move.c */
-void make_move(struct board *board, Move move);
+void make_move(struct search_state *state, Move move);
+void unmake_move(struct search_state *state, Move move);
 
 /* evaluate.c */
-int evaluate_board(const struct board *board);
+int evaluate_board(const struct search_state *state);
 
 /* find_move.c */
-Move find_move(const struct board *board, int milliseconds);
+Move find_move(struct search_state *state, int milliseconds);
 
-/* INLINE FUNCTIONS */
+/* zobrist_numbers.c */
+extern uint64_t zobrist_piece_numbers[2 * 6 * 64];
+extern uint64_t zobrist_castling_numbers[16];
+extern uint64_t zobrist_en_passant_numbers[8];
+extern uint64_t zobrist_black_number;
+
+/* magic_numbers.c */
+extern struct magic_square magic_squares[];
+extern uint64_t attack_table[142244];
+
+static inline uint64_t
+get_zobrist_piece_number(int color, int piece_type, int square)
+{
+  return zobrist_piece_numbers[color * 6 * 64 + piece_type * 64 + square];
+}
 
 static inline uint64_t
 random_uint64(void)

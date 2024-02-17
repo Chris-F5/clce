@@ -6,26 +6,27 @@
 #include <stdio.h>
 #include "chess.h"
 
-static int minimax(const struct board *board, int depth, int alpha, int beta,
+static int minimax(struct search_state *state, int depth, int alpha, int beta,
     Move *best_move, clock_t deadline);
 
 static int
-minimax(const struct board *board, int depth, int alpha, int beta,
+minimax(struct search_state *state, int depth, int alpha, int beta,
     Move *best_move, clock_t deadline)
 {
   Move moves[256];
-  struct board next_board;
   int move_count, i, best_score, score, color;
-  color = board->flags & BOARD_FLAG_WHITE_TO_PLAY ? 1 : 0;
+  struct board_state *bstate;
+  bstate = &state->board_states[state->search_ply];
+  color = bstate->flags & BOARD_FLAG_WHITE_TO_PLAY ? 1 : 0;
   best_score = color ? -CHECKMATE_EVALUATION : CHECKMATE_EVALUATION;
-  move_count = generate_moves(board, moves) - moves;
+  move_count = generate_moves(state, moves) - moves;
   for (i = 0; i < move_count; i++) {
-    next_board = *board;
-    make_move(&next_board, moves[i]);
+    make_move(state, moves[i]);
     if (depth > 1)
-      score = minimax(&next_board, depth - 1, alpha, beta, NULL, deadline);
+      score = minimax(state, depth - 1, alpha, beta, NULL, deadline);
     else
-      score = evaluate_board(&next_board);
+      score = evaluate_board(state);
+    unmake_move(state, moves[i]);
     if (depth > 4 && clock() > deadline) {
       if (best_move != NULL )
         *best_move = 0;
@@ -55,7 +56,7 @@ minimax(const struct board *board, int depth, int alpha, int beta,
 }
 
 Move
-find_move(const struct board *board, int milliseconds)
+find_move(struct search_state *state, int milliseconds)
 {
   Move best_move, move;
   clock_t deadline;
@@ -66,7 +67,7 @@ find_move(const struct board *board, int milliseconds)
   do {
     best_move = move;
     depth++;
-    minimax(board, depth, -CHECKMATE_EVALUATION, CHECKMATE_EVALUATION, &move, deadline);
+    minimax(state, depth, -CHECKMATE_EVALUATION, CHECKMATE_EVALUATION, &move, deadline);
   } while(move);
   return best_move;
 }

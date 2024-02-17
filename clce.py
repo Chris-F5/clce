@@ -5,6 +5,8 @@ class CLCE:
   def __init__(self, binary: str):
     self.binary = binary
     self.process = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    welcome = self.process.stdout.readline().decode().strip()
+    print(welcome)
   def find_move(self, board: chess.Board, milliseconds: int):
     command = f'{board.fen()}:{milliseconds}\n'
     self.process.stdin.write(command.encode())

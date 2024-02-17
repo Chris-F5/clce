@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <ctype.h>
 #include "chess.h"
-#include "bit_utils.h"
 
 const char *square_names[64] = {
   "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
@@ -62,6 +61,7 @@ print_move(Move move)
     putchar(piece_chars[get_move_promote_piece(move)]);
 }
 
+/*
 void
 print_board(const struct board *board)
 {
@@ -83,6 +83,7 @@ print_board(const struct board *board)
   printf("  a   b   c   d   e   f   g   h\n");
   fflush(stdout);
 }
+*/
 
 void
 read_buffer(char *buffer, int len)

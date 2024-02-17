@@ -8,124 +8,61 @@
 #include <string.h>
 
 int
-parse_fen(struct board *board, const char *fen)
+parse_fen(struct search_state *state, const char *fen)
 {
   int r, f;
+  int piece_type, piece_color;
   unsigned char c;
 
-  memset(board, 0, sizeof(struct board));
+  memset(state, 0, sizeof(struct search_state));
   r = 7;
   f = 0;
   while (!(r == 0 && f == 8)) {
     c = *fen++;
-    switch (c) {
-    case 'p':
-      board->type_bitboards[PIECE_TYPE_PAWN] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_BLACK] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_PAWN);
-      f++;
-      break;
-    case 'n':
-      board->type_bitboards[PIECE_TYPE_KNIGHT] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_BLACK] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_KNIGHT);
-      f++;
-      break;
-    case 'b':
-      board->type_bitboards[PIECE_TYPE_BISHOP] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_BLACK] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_BISHOP);
-      f++;
-      break;
-    case 'r':
-      board->type_bitboards[PIECE_TYPE_ROOK] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_BLACK] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_ROOK);
-      f++;
-      break;
-    case 'q':
-      board->type_bitboards[PIECE_TYPE_QUEEN] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_BLACK] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_QUEEN);
-      f++;
-      break;
-    case 'k':
-      board->type_bitboards[PIECE_TYPE_KING] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_BLACK] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_KING);
-      f++;
-      break;
-    case 'P':
-      board->type_bitboards[PIECE_TYPE_PAWN] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_WHITE] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_PAWN);
-      f++;
-      break;
-    case 'N':
-      board->type_bitboards[PIECE_TYPE_KNIGHT] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_WHITE] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_KNIGHT);
-      f++;
-      break;
-    case 'B':
-      board->type_bitboards[PIECE_TYPE_BISHOP] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_WHITE] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_BISHOP);
-      f++;
-      break;
-    case 'R':
-      board->type_bitboards[PIECE_TYPE_ROOK] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_WHITE] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_ROOK);
-      f++;
-      break;
-    case 'Q':
-      board->type_bitboards[PIECE_TYPE_QUEEN] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_WHITE] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_QUEEN);
-      f++;
-      break;
-    case 'K':
-      board->type_bitboards[PIECE_TYPE_KING] |= (uint64_t)1 << (r * 8 + f);
-      board->color_bitboards[COLOR_WHITE] |= (uint64_t)1 << (r * 8 + f);
-      set_piece_type(board->mailbox, r * 8 + f, PIECE_TYPE_KING);
-      f++;
-      break;
-    case '/':
+    if (c >= '1' && c <= '8') {
+      f += c - '0';
+    } else if (c == '/') {
       if (f != 8) {
         fprintf(stderr, "failed to parse fen: unexpected slash\n");
         return 1;
       }
       f = 0;
       r--;
-      break;
-    case '1':
-      f += 1;
-      break;
-    case '2':
-      f += 2;
-      break;
-    case '3':
-      f += 3;
-      break;
-    case '4':
-      f += 4;
-      break;
-    case '5':
-      f += 5;
-      break;
-    case '6':
-      f += 6;
-      break;
-    case '7':
-      f += 7;
-      break;
-    case '8':
-      f += 8;
-      break;
-    default:
-      fprintf(stderr, "failed to parse fen: unexpected piece character '%c'\n", c);
-      return 1;
+    } else {
+      piece_color = c < 'a' ? COLOR_WHITE : COLOR_BLACK;
+      switch (c < 'a' ? c + 0x20 : c) {
+      case 'p':
+        piece_type = PIECE_TYPE_PAWN;
+        break;
+      case 'n':
+        piece_type = PIECE_TYPE_KNIGHT;
+        break;
+      case 'b':
+        piece_type = PIECE_TYPE_BISHOP;
+        break;
+      case 'r':
+        piece_type = PIECE_TYPE_ROOK;
+        break;
+      case 'q':
+        piece_type = PIECE_TYPE_QUEEN;
+        break;
+      case 'k':
+        piece_type = PIECE_TYPE_KING;
+        break;
+      default:
+        fprintf(stderr, "failed to parse fen: unexpected piece character '%c'\n", c);
+        return 1;
+      }
+      state->board_states[0].type_bitboards[piece_type] |= (uint64_t)1 << (r * 8 + f);
+      state->board_states[0].color_bitboards[piece_color] |= (uint64_t)1 << (r * 8 + f);
+      set_piece_type(state->board_states[0].mailbox, r * 8 + f, piece_type);
+      if (piece_type == PIECE_TYPE_PAWN)
+        state->board_states[0].pawn_hash
+          ^= get_zobrist_piece_number(piece_color, piece_type, r * 8 + f);
+      else
+        state->board_states[0].non_pawn_hash
+          ^= get_zobrist_piece_number(piece_color, piece_type, r * 8 + f);
+      f++;
     }
   }
   c = *fen++;
@@ -136,9 +73,10 @@ parse_fen(struct board *board, const char *fen)
   c = *fen++;
   switch (c) {
   case 'w':
-    board->flags |= BOARD_FLAG_WHITE_TO_PLAY;
+    state->board_states[0].flags |= BOARD_FLAG_WHITE_TO_PLAY;
     break;
   case 'b':
+    state->board_states[0].non_pawn_hash ^= zobrist_black_number;
     break;
   default:
     fprintf(stderr, "failed to parse fen: unexpected turn character '%c'\n", c);
@@ -149,20 +87,20 @@ parse_fen(struct board *board, const char *fen)
     fprintf(stderr, "failed to parse fen: expected space after turn field but found '%c'\n", c);
     return 1;
   }
-  board->flags |= BOARD_FLAGS_WHITE_CASTLE | BOARD_FLAGS_BLACK_CASTLE;
+  state->board_states[0].flags |= BOARD_FLAGS_WHITE_CASTLE | BOARD_FLAGS_BLACK_CASTLE;
   while ( (c = *fen++) != ' ') {
     switch (c) {
     case 'k':
-      board->flags &= ~BOARD_FLAG_BLACK_CASTLE_KING;
+      state->board_states[0].flags &= ~BOARD_FLAG_BLACK_CASTLE_KING;
       break;
     case 'q':
-      board->flags &= ~BOARD_FLAG_BLACK_CASTLE_QUEEN;
+      state->board_states[0].flags &= ~BOARD_FLAG_BLACK_CASTLE_QUEEN;
       break;
     case 'K':
-      board->flags &= ~BOARD_FLAG_WHITE_CASTLE_KING;
+      state->board_states[0].flags &= ~BOARD_FLAG_WHITE_CASTLE_KING;
       break;
     case 'Q':
-      board->flags &= ~BOARD_FLAG_WHITE_CASTLE_QUEEN;
+      state->board_states[0].flags &= ~BOARD_FLAG_WHITE_CASTLE_QUEEN;
       break;
     case '-':
       break;
@@ -171,16 +109,20 @@ parse_fen(struct board *board, const char *fen)
       return 1;
     }
   }
+  state->board_states[0].non_pawn_hash
+    ^= zobrist_castling_numbers[(state->board_states[0].flags >> 1) & 0x0f];
   c = *fen++;
-  board->en_passant_square = -1;
+  state->board_states[0].en_passant_square = -1;
   if (c >= 'a' && c <= 'h') {
-    board->en_passant_square = c - 'a';
+    state->board_states[0].en_passant_square = c - 'a';
     c = *fen++;
     if (c != '3' && c != '6') {
       fprintf(stderr, "failed to parse fen: unexpected en passant character '%c'\n", c);
       return 1;
     }
-    board->en_passant_square += (c - '1') * 8;
+    state->board_states[0].en_passant_square += (c - '1') * 8;
+    state->board_states[0].non_pawn_hash
+      ^= zobrist_en_passant_numbers[state->board_states[0].en_passant_square % 8];
   } else if (c != '-') {
     fprintf(stderr, "failed to parse fen: unexpected en passant character '%c'\n", c);
     return 1;
@@ -192,7 +134,7 @@ parse_fen(struct board *board, const char *fen)
   }
   while ( (c = *fen++) != ' ') {
     if (c >= '0' && c <= '9') {
-      board->halfmove_clock = board->halfmove_clock * 10 + c - '0';
+      state->board_states[0].halfmove_clock = state->board_states[0].halfmove_clock * 10 + c - '0';
     } else {
       fprintf(stderr, "failed to parse fen: unexpected halfmove clock character '%c'\n", c);
       return 1;
@@ -202,7 +144,7 @@ parse_fen(struct board *board, const char *fen)
     if (c == '\n')
       break;
     if (c >= '0' && c <= '9') {
-      board->fullmove_clock = board->fullmove_clock * 10 + c - '0';
+      state->fullmove_clock = state->fullmove_clock * 10 + c - '0';
     } else {
       fprintf(stderr, "failed to parse fen: unexpected fullmove clock character '%c'\n", c);
       return 1;

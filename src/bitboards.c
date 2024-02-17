@@ -5,8 +5,6 @@
 #include <time.h>
 #include <assert.h>
 #include "chess.h"
-#include "magic_numbers.h"
-#include "bit_utils.h"
 
 static uint64_t rook_relevance_masks[64];
 static uint64_t bishop_relevance_masks[64];
@@ -200,6 +198,7 @@ print_best_magic(int square, int rook, int reduction_attempts,
   uint64_t magic, best_magic;
   uint64_t *mock_table_memory;
   bits = 14;
+  best_table_size = 0;
   mock_table_memory = xmalloc( ((uint64_t)1 << bits) * sizeof(uint64_t) );
   for(; reduction_attempts ; reduction_attempts--) {
     magic = random_uint64() & random_uint64() & random_uint64();
@@ -235,21 +234,15 @@ print_best_magics(void)
   int square, table_offset;
   init_relevance_masks();
   srand(time(NULL));
-  printf("\
-struct magic_square {\n\
-  uint64_t magic; \n\
-  int bits;\n\
-  int attack_table_offset;\n\
-} magic_squares[] = {\n");
+  printf("struct magic_square magic_squares[] = {\n");
   printf("  /* bishops */\n");
   for (square = 0; square < 64; square++)
     print_best_magic(square, 0, 20000, 20000, &table_offset);
   printf("  /* rooks */\n");
   for (square = 0; square < 64; square++)
     print_best_magic(square, 1, 20000, 20000, &table_offset);
-  printf("\
-};\n\
-uint64_t attack_table[%d];\n", table_offset);
+  printf("};\n");
+  printf("uint64_t attack_table[%d];\n", table_offset);
 }
 
 void
