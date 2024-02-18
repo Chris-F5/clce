@@ -5,6 +5,7 @@
 #include <assert.h>
 #include "chess.h"
 
+#define DEFAULT_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 static int
 read_square(void)
 {
@@ -105,30 +106,47 @@ debug_move_gen(void)
 */
 
 void
+repl_command(char *command)
+{
+  int d;
+  struct search_state search_state;
+  Move move;
+  char *arg;
+  if ( (arg = strchr(command, '\n')) ) *arg = '\0';
+  arg = strtok(command, ":");
+  if (strcmp(arg, "go") == 0) {
+    arg = strtok(NULL, ":");
+    if (arg == NULL) arg = DEFAULT_FEN;
+    if (parse_fen(&search_state, arg)) goto invalid_command;
+    arg = strtok(NULL, ":");
+    d = arg ? atoi(arg) : 4000;
+    move = find_move(&search_state, d);
+    print_move(move);
+    printf("\n");
+  } else if (strcmp(arg, "perft") == 0) {
+    arg = strtok(NULL, ":");
+    if (arg == NULL) arg = DEFAULT_FEN;
+    if (parse_fen(&search_state, arg)) goto invalid_command;
+    arg = strtok(NULL, ":");
+    d = arg ? atoi(arg) : 4;
+    printf("%ld\n", perft(&search_state, d, 0));
+  } else {
+    goto invalid_command;
+  }
+  return;
+invalid_command:
+  fprintf(stderr, "Invalid command. Exiting...\n");
+  exit(1);
+}
+
+void
 repl_start(void)
 {
   char buffer[MAX_FEN_SIZE + 1];
-  int i, move_time;
-  struct search_state search_state;
-  Move move;
   for (;;) {
     if (fgets(buffer, sizeof(buffer), stdin) == NULL)
       break;
-    move_time = 4000;
-    for (i = 0; buffer[i]; i++) {
-      if (buffer[i] == ':') {
-        buffer[i] = '\0';
-        move_time = atoi(buffer + i + 1);
-        break;
-      }
-    }
-    if (parse_fen(&search_state, buffer)) {
-      fprintf(stderr, "Invalid fen.\n");
-      exit(1);
-    }
-    move = find_move(&search_state, move_time);
-    print_move(move);
-    printf("\n");
+    repl_command(buffer);
     fflush(stdout);
   }
 }
