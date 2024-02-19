@@ -1,26 +1,65 @@
+from typing import Dict
 import chess
 import subprocess
+import select
+import sys
+import time
+
+def recv(stream, seconds: float) -> str | None:
+    start_time = time.time()
+    while True:
+      if time.time() > start_time + seconds:
+        return None
+      ready, _, _ = select.select([stream], [], [], 0.01)
+      if ready:
+        return stream.readline().strip()
 
 class CLCE:
-  def __init__(self, binary: str):
+  def __init__(self, binary: str, verbose: bool=False):
     self.binary = binary
-    self.process = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    welcome = self.process.stdout.readline().decode().strip()
-    print(welcome)
-  def find_move(self, board: chess.Board, milliseconds: int):
-    command = f'{board.fen()}:{milliseconds}\n'
-    self.process.stdin.write(command.encode())
-    self.process.stdin.flush()
-    result = self.process.stdout.readline().decode().strip()
+    self.verbose = verbose
+    self.proc = subprocess.Popen([binary], stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    self.wait_ready()
+  def dump_stderr(self):
+    while line := recv(self.proc.stderr, 0.1):
+      sys.stderr.write(line + "\n")
+  def wait_line(self, seconds: float) -> str:
+    line = recv(self.proc.stdout, seconds)
+    if line == None:
+      self.dump_stderr()
+      sys.stderr.write(f"{self.binary} timed out.\n")
+      self.close()
+      exit(1)
+    if self.verbose: print(f">{line}")
+    return line
+  def wait_ready(self):
+    while line := self.wait_line(2):
+      if line == "READY":
+        break
+  def send_command(self, cmd: str):
+    if self.verbose: print(f">{cmd}")
+    self.proc.stdin.write(cmd+"\n")
+    self.proc.stdin.flush()
+
+  def go(self, board: chess.Board, seconds: float=4) -> chess.Move:
+    milliseconds = (int)(seconds * 1000)
+    self.send_command(f"go:{board.fen()}:{milliseconds}")
+    result = self.wait_line(seconds + 2)
     move = chess.Move.from_uci(result)
     return move
-  def close(self):
-    self.process.stdin.close()
-    self.process.stdout.close()
-    self.process.stderr.close()
-    self.process.terminate()
+  def perft(self, board: chess.Board, depth: int) -> Dict[chess.Move, int]:
+    self.send_command(f"perft:{board.fen()}:{depth}")
+    table = {}
+    line = self.wait_line(16)
+    if line.strip() == "":
+      return {}
+    for pair in line.split(" "):
+      move,count = pair.split(":")
+      table[chess.Move.from_uci(move)] = int(count)
+    return table
 
-#board = chess.Board("5kr1/8/3K3p/7P/8/1n6/2qn4/8 w - - 18 61")
-#e = CLCE('./clce')
-#print(e.find_move(board, 200))
-#e.close()
+  def close(self):
+    self.proc.stdin.close()
+    self.proc.stdout.close()
+    self.proc.terminate()
