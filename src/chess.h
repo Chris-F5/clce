@@ -23,18 +23,20 @@
 #define BOARD_FLAG_WHITE_CASTLE_QUEEN 0x0004
 #define BOARD_FLAG_BLACK_CASTLE_KING  0x0008
 #define BOARD_FLAG_BLACK_CASTLE_QUEEN 0x0010
-#define BOARD_FLAGS_WHITE_CASTLE (BOARD_FLAG_WHITE_CASTLE_KING | BOARD_FLAG_WHITE_CASTLE_QUEEN)
-#define BOARD_FLAGS_BLACK_CASTLE (BOARD_FLAG_BLACK_CASTLE_KING | BOARD_FLAG_BLACK_CASTLE_QUEEN)
+#define CASTLE_BOARD_FLAGS (BOARD_FLAG_WHITE_CASTLE_KING | BOARD_FLAG_WHITE_CASTLE_QUEEN | BOARD_FLAG_BLACK_CASTLE_KING | BOARD_FLAG_BLACK_CASTLE_QUEEN)
+#define KING_CASTLE_BOARD_FLAG(color) (color ? BOARD_FLAG_WHITE_CASTLE_KING : BOARD_FLAG_BLACK_CASTLE_KING)
+#define QUEEN_CASTLE_BOARD_FLAG(color) (color ? BOARD_FLAG_WHITE_CASTLE_QUEEN : BOARD_FLAG_BLACK_CASTLE_QUEEN)
 
 #define SPECIAL_MOVE_NONE       0
 #define SPECIAL_MOVE_PROMOTE    1
 #define SPECIAL_MOVE_EN_PASSANT 2
 #define SPECIAL_MOVE_CASTLING   3
 
-#define WHITE_KING_CASTLE_BLOCKERS (set_bit(5) | set_bit(6))
-#define WHITE_QUEEN_CASTLE_BLOCKERS (set_bit(1) | set_bit(2) | set_bit(3))
-#define BLACK_KING_CASTLE_BLOCKERS (set_bit(61) | set_bit(62))
-#define BLACK_QUEEN_CASTLE_BLOCKERS (set_bit(57) | set_bit(58) | set_bit(59))
+#define KING_CASTLE_GAP(color) (color ? (set_bit(5) | set_bit(6)) : (set_bit(61) | set_bit(62)))
+#define QUEEN_CASTLE_GAP(color) (color ? (set_bit(1) | set_bit(2) | set_bit(3)) : (set_bit(57) | set_bit(58) | set_bit(59)))
+
+#define KING_CASTLE_CHECK_SQUARES(color) (color ? (set_bit(4) | set_bit(5) | set_bit(6)) : (set_bit(60) | set_bit(61) | set_bit(62)))
+#define QUEEN_CASTLE_CHECK_SQUARES(color) (color ? (set_bit(2) | set_bit(3) | set_bit(4)) : (set_bit(58) | set_bit(59) | set_bit(60)))
 
 #define MAX_FEN_SIZE (8 * 8 + 7 + 1 + 4 + 2 + 6 + 6 + 5)
 
@@ -104,6 +106,7 @@ uint64_t get_bishop_attack_set(int bishop_square, uint64_t blockers);
 /* move_gen.c */
 Move *generate_moves(struct search_state *state, Move *moves);
 long perft(struct search_state *state, int depth, int print);
+Bitboard attack_set(const struct search_state *state, int color);
 
 /* make_move.c */
 void make_move(struct search_state *state, Move move);

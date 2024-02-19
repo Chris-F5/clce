@@ -13,7 +13,7 @@ static Move * generate_king_moves(const struct search_state *state, Move *moves,
 static Move * generate_bishop_moves(const struct search_state *state, Move *moves);
 static Move * generate_rook_moves(const struct search_state *state, Move *moves);
 static Move * generate_queen_moves(const struct search_state *state, Move *moves);
-static Bitboard attack_set(const struct search_state *state, int color);
+//static Bitboard attack_set(const struct search_state *state, int color);
 
 static Move *
 generate_pawn_moves(const struct search_state *state, Move *moves)
@@ -135,16 +135,14 @@ generate_king_moves(const struct search_state *state, Move *moves,
     *moves++ = basic_move(origin, dest);
   }
   /* castling */
-  if ((opponent_attack_set & (color ? set_bit(4) : set_bit(60))) == 0 &&
-      ~bstate->flags & (color ? BOARD_FLAGS_WHITE_CASTLE : BOARD_FLAGS_BLACK_CASTLE)) {
-    attacks = opponent_attack_set | bstate->color_bitboards[0] | bstate->color_bitboards[1];
-    if ( (bstate->flags & (color ? BOARD_FLAG_WHITE_CASTLE_KING : BOARD_FLAG_BLACK_CASTLE_KING)) == 0
-        && (attacks & (color ? WHITE_KING_CASTLE_BLOCKERS : BLACK_KING_CASTLE_BLOCKERS)) == 0)
+  if ( (bstate->flags & KING_CASTLE_BOARD_FLAG(color)) == 0
+  &&   ((bstate->color_bitboards[0] | bstate->color_bitboards[1]) & KING_CASTLE_GAP(color)) == 0
+  &&   (opponent_attack_set & KING_CASTLE_CHECK_SQUARES(color)) == 0)
       *moves++ = castle_move(color, 1);
-    if ( (bstate->flags & (color ? BOARD_FLAG_WHITE_CASTLE_QUEEN : BOARD_FLAG_BLACK_CASTLE_QUEEN)) == 0
-        && (attacks & (color ? WHITE_QUEEN_CASTLE_BLOCKERS : BLACK_QUEEN_CASTLE_BLOCKERS)) == 0)
+  if ( (bstate->flags & QUEEN_CASTLE_BOARD_FLAG(color)) == 0
+  &&   ((bstate->color_bitboards[0] | bstate->color_bitboards[1]) & QUEEN_CASTLE_GAP(color)) == 0
+  &&   (opponent_attack_set & QUEEN_CASTLE_CHECK_SQUARES(color)) == 0)
       *moves++ = castle_move(color, 0);
-  }
   return moves;
 }
 
@@ -212,19 +210,18 @@ generate_queen_moves(const struct search_state *state, Move *moves)
   return moves;
 }
 
-static Bitboard
+Bitboard
 attack_set(const struct search_state *state, int color)
 {
   const int forward = color ? 8 : -8;
   const struct board_state *bstate = &state->board_states[state->search_ply];
-  const Bitboard their_all = bstate->color_bitboards[!color];
   uint64_t pieces, attacks;
   int origin;
   attacks = 0;
   /* pawns */
   pieces = bstate->type_bitboards[PIECE_TYPE_PAWN] & bstate->color_bitboards[color];
-  attacks |= SHIFT(pieces, forward + 1) & 0xfefefefefefefefe & their_all;
-  attacks |= SHIFT(pieces, forward - 1) & 0x7f7f7f7f7f7f7f7f & their_all;
+  attacks |= SHIFT(pieces, forward + 1) & 0xfefefefefefefefe;
+  attacks |= SHIFT(pieces, forward - 1) & 0x7f7f7f7f7f7f7f7f;
   /* knights */
   pieces = bstate->type_bitboards[PIECE_TYPE_KNIGHT] & bstate->color_bitboards[color];
   while (pieces) {
@@ -267,17 +264,11 @@ perft(struct search_state *state, int depth, int print)
   Move moves[256];
   int move_count, c, i;
   long sum;
+  if (depth == 0)
+    return 1;
   move_count = generate_moves(state, moves) - moves;
-  if (depth == 1) {
-    if (print) {
-      for (int i = 0; i < move_count; i++) {
-        print_move(moves[i]);
-        printf(": 1\n");
-      }
-      printf("%d\n", move_count);
-    }
-    return move_count;
-  }
+  if (move_count == 0 && print)
+    printf("\n");
   sum = 0;
   for (i = 0; i < move_count; i++) {
     make_move(state, moves[i]);
@@ -285,11 +276,10 @@ perft(struct search_state *state, int depth, int print)
     unmake_move(state, moves[i]);
     if (print) {
       print_move(moves[i]);
-      printf(": %d\n", c);
+      printf(":%d%c", c, i == move_count - 1 ? '\n' : ' ');
     }
     sum += c;
   }
-  if (print) printf("%ld\n", sum);
   return sum;
 }
 

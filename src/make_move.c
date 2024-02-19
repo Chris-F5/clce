@@ -73,6 +73,12 @@ make_move(struct search_state *state, Move move)
     }
   }
 
+  if (piece_type == PIECE_TYPE_KING) {
+    if (color == COLOR_WHITE)
+      bstate->flags |= BOARD_FLAG_WHITE_CASTLE_KING | BOARD_FLAG_WHITE_CASTLE_QUEEN;
+    else
+      bstate->flags |= BOARD_FLAG_BLACK_CASTLE_KING | BOARD_FLAG_BLACK_CASTLE_QUEEN;
+  }
   if (piece_type == PIECE_TYPE_ROOK) {
     bstate->non_pawn_hash ^= (bstate->flags >> 1) & 0x0f;
     switch(get_move_origin(move)) {

@@ -87,7 +87,7 @@ parse_fen(struct search_state *state, const char *fen)
     fprintf(stderr, "failed to parse fen: expected space after turn field but found '%c'\n", c);
     return 1;
   }
-  state->board_states[0].flags |= BOARD_FLAGS_WHITE_CASTLE | BOARD_FLAGS_BLACK_CASTLE;
+  state->board_states[0].flags |= CASTLE_BOARD_FLAGS;
   while ( (c = *fen++) != ' ') {
     switch (c) {
     case 'k':

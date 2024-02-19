@@ -129,7 +129,8 @@ repl_command(char *command)
     if (parse_fen(&search_state, arg)) goto invalid_command;
     arg = strtok(NULL, ":");
     d = arg ? atoi(arg) : 4;
-    printf("%ld\n", perft(&search_state, d, 0));
+    arg = strtok(NULL, ":");
+    perft(&search_state, d, 1);
   } else {
     goto invalid_command;
   }
