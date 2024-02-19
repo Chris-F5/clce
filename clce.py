@@ -51,7 +51,7 @@ class CLCE:
   def perft(self, board: chess.Board, depth: int) -> Dict[chess.Move, int]:
     self.send_command(f"perft:{board.fen()}:{depth}")
     table = {}
-    line = self.wait_line(16)
+    line = self.wait_line(60)
     if line.strip() == "":
       return {}
     for pair in line.split(" "):
