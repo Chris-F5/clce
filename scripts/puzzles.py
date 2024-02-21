@@ -2,7 +2,7 @@ import chess
 import math
 from clce import CLCE
 
-binary = "./clce"
+binary = "../clce"
 # Download from https://database.lichess.org/#puzzles
 puzzles = "lichess_db_puzzle.csv"
 e = CLCE(binary, verbose=False)

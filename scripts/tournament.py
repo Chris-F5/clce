@@ -52,7 +52,7 @@ def print_results(results: []):
   print(f"draws {draws}")
   print(f"losses {losses}")
 
-old = CLCE("./clce", 0.5, verbose=False)
-new = CLCE("./clce", 0.5, verbose=False)
+old = CLCE("../clce", 0.5, verbose=False)
+new = CLCE("../clce", 0.5, verbose=False)
 results = play_games("SaintLouis2023.pgn", old, new)
 print_results(results)

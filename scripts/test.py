@@ -5,7 +5,7 @@ def test_perft(e: CLCE, fen: str, depth: int, expected: int):
   print(f"TESTING PERFT at depth {depth} fen {fen}")
   assert(sum(e.perft(chess.Board(fen), depth).values()) == expected)
 
-binary = "./clce"
+binary = "../clce"
 e = CLCE(binary, verbose=False)
 test_perft(e, "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 4, 197281)
 test_perft(e, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 4, 4085603)
