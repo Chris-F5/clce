@@ -1,12 +1,14 @@
 import chess
+import math
 from clce import CLCE
 
 binary = "./clce"
+# Download from https://database.lichess.org/#puzzles
 puzzles = "lichess_db_puzzle.csv"
 e = CLCE(binary, verbose=False)
 
-think_time=1
-count = 200
+think_time=0.1
+count = 100
 results = []
 f = open(puzzles, "r")
 f.readline()
@@ -21,13 +23,13 @@ for line in f:
   board.push(chosen)
   checkmate = board.outcome() and board.outcome().winner == color
   correct = (chosen == moves[1] or checkmate)
-  print(f"{len(results)}/{count} {correct}, rating {rating}, expected {moves[1]}, suggested {chosen}, fen {fen}")
+  print(f"{len(results)}/{count} {'correct' if correct else 'incorrect'}, rating {rating}, expected {moves[1]}, suggested {chosen}, fen {fen}",flush=True)
   results.append((id, fen, int(rating), correct))
   if len(results) == count:
     break
 
 correct = sum(1 if r[3] else 0 for r in results)
 mean_rating = sum(r[2] for r in results)/len(results)
-print(f"correct {correct/count}, mean rating {mean_rating}")
+print(f"correct {correct}/{count}")
 
 e.close()

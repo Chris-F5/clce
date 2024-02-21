@@ -15,12 +15,23 @@ def recv(stream, seconds: float) -> str | None:
         return stream.readline().strip()
 
 class CLCE:
-  def __init__(self, binary: str, verbose: bool=False):
+  def __init__(self, binary: str, default_move_time :float = 4, verbose: bool=False):
     self.binary = binary
     self.verbose = verbose
-    self.proc = subprocess.Popen([binary], stdin=subprocess.PIPE,
+    self.default_move_time = default_move_time
+    self.start_binary()
+  def start_binary(self):
+    self.proc = subprocess.Popen([self.binary], stdin=subprocess.PIPE,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     self.wait_ready()
+  def restart(self):
+    self.dump_stderr()
+    self.close()
+    self.start_binary()
+  def close(self):
+    self.proc.stdin.close()
+    self.proc.stdout.close()
+    self.proc.terminate()
   def dump_stderr(self):
     while line := recv(self.proc.stderr, 0.1):
       sys.stderr.write(line + "\n")
@@ -42,7 +53,9 @@ class CLCE:
     self.proc.stdin.write(cmd+"\n")
     self.proc.stdin.flush()
 
-  def go(self, board: chess.Board, seconds: float=4) -> chess.Move:
+  def go(self, board: chess.Board, seconds: float=None) -> chess.Move:
+    if seconds == None:
+      seconds = self.default_move_time
     milliseconds = (int)(seconds * 1000)
     self.send_command(f"go:{board.fen()}:{milliseconds}")
     result = self.wait_line(seconds + 2)
@@ -58,8 +71,3 @@ class CLCE:
       move,count = pair.split(":")
       table[chess.Move.from_uci(move)] = int(count)
     return table
-
-  def close(self):
-    self.proc.stdin.close()
-    self.proc.stdout.close()
-    self.proc.terminate()
