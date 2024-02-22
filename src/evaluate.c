@@ -5,45 +5,34 @@
 
 #include "chess.h"
 
-static void count_pieces(Bitboard bitboard, int value, int *count);
-static int material_count(const struct search_state *state);
-
-static void
-count_pieces(Bitboard bitboard, int value, int *count)
-{
-  while(bitboard) {
-    pop_lss(&bitboard);
-    *count += value;
-  }
-}
-
 static int
-material_count(const struct search_state *state)
+material_count(struct board *board)
 {
-  int material;
+  struct position *pos;
   Bitboard bitboard;
-  const struct board_state *bstate = &state->board_states[state->search_ply];
+  int material;
+  pos = board_position(board);
 
   material = 0;
-  bitboard = bstate->type_bitboards[PIECE_TYPE_PAWN];
-  count_pieces(bitboard & bstate->color_bitboards[COLOR_WHITE], 1, &material);
-  count_pieces(bitboard & bstate->color_bitboards[COLOR_BLACK], -1, &material);
+  bitboard = pos->type_bitboards[PIECE_TYPE_PAWN];
+  material += count_bits(bitboard & pos->color_bitboards[COLOR_WHITE]) * 1;
+  material += count_bits(bitboard & pos->color_bitboards[COLOR_BLACK]) * -1;
   bitboard
-    = bstate->type_bitboards[PIECE_TYPE_BISHOP]
-    | bstate->type_bitboards[PIECE_TYPE_KNIGHT];
-  count_pieces(bitboard & bstate->color_bitboards[COLOR_WHITE], 3, &material);
-  count_pieces(bitboard & bstate->color_bitboards[COLOR_BLACK], -3, &material);
-  bitboard = bstate->type_bitboards[PIECE_TYPE_ROOK];
-  count_pieces(bitboard & bstate->color_bitboards[COLOR_WHITE], 5, &material);
-  count_pieces(bitboard & bstate->color_bitboards[COLOR_BLACK], -5, &material);
-  bitboard = bstate->type_bitboards[PIECE_TYPE_QUEEN];
-  count_pieces(bitboard & bstate->color_bitboards[COLOR_WHITE], 9, &material);
-  count_pieces(bitboard & bstate->color_bitboards[COLOR_BLACK], -9, &material);
+    = pos->type_bitboards[PIECE_TYPE_BISHOP]
+    | pos->type_bitboards[PIECE_TYPE_KNIGHT];
+  material += count_bits(bitboard & pos->color_bitboards[COLOR_WHITE]) * 3;
+  material += count_bits(bitboard & pos->color_bitboards[COLOR_BLACK]) * -3;
+  bitboard = pos->type_bitboards[PIECE_TYPE_ROOK];
+  material += count_bits(bitboard & pos->color_bitboards[COLOR_WHITE]) * 5;
+  material += count_bits(bitboard & pos->color_bitboards[COLOR_BLACK]) * -5;
+  bitboard = pos->type_bitboards[PIECE_TYPE_QUEEN];
+  material += count_bits(bitboard & pos->color_bitboards[COLOR_WHITE]) * 9;
+  material += count_bits(bitboard & pos->color_bitboards[COLOR_BLACK]) * -9;
   return material;
 }
 
 int
-evaluate_board(const struct search_state *state)
+evaluate_board(struct board *board)
 {
-  return material_count(state);
+  return material_count(board);
 }

@@ -57,23 +57,24 @@ void
 print_move(Move move)
 {
   printf("%s%s", square_names[(move >> 6) & 0x3f], square_names[move & 0x3f]);
-  if (get_move_special_type(move) == SPECIAL_MOVE_PROMOTE)
-    putchar(piece_chars[get_move_promote_piece(move)]);
+  if (move_special_type(move) == SPECIAL_MOVE_PROMOTE)
+    putchar(piece_chars[move_promote_piece(move)]);
 }
 
-/*
 void
-print_board(const struct board *board)
+print_board(struct board *board)
 {
+  struct position *pos;
   char piece_char;
   int r, f;
+  pos = board_position(board);
   for (r = 7; r >= 0; r--) {
     printf("+---+---+---+---+---+---+---+---+\n");
     for (f = 0; f < 8; f++) {
-      piece_char = piece_chars[get_piece_type(board->mailbox, r * 8 + f)];
-      if (board->color_bitboards[COLOR_WHITE] & ((uint64_t)1 << (r * 8 + f)))
+      piece_char = piece_chars[get_piece_type(pos->mailbox, r * 8 + f)];
+      if (pos->color_bitboards[COLOR_WHITE] & ((uint64_t)1 << (r * 8 + f)))
         piece_char = toupper(piece_char);
-      else if (!(board->color_bitboards[COLOR_BLACK] & ((uint64_t)1 << (r * 8 + f))))
+      else if (!(pos->color_bitboards[COLOR_BLACK] & ((uint64_t)1 << (r * 8 + f))))
         piece_char = ' ';
       printf("| %c ", piece_char);
     }
@@ -83,7 +84,6 @@ print_board(const struct board *board)
   printf("  a   b   c   d   e   f   g   h\n");
   fflush(stdout);
 }
-*/
 
 void
 read_buffer(char *buffer, int len)

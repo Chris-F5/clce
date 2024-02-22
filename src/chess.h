@@ -53,22 +53,6 @@ typedef uint16_t BoardFlags;
  * 14-15 promote piece type
  */
 typedef uint16_t Move;
-struct board_state {
-  Bitboard type_bitboards[6];
-  Bitboard color_bitboards[2];
-  uint8_t mailbox[32]; /* 4-bits per piece */
-
-  BoardFlags flags;
-  int16_t en_passant_square;
-  uint16_t halfmove_clock;
-
-  uint64_t pawn_hash, non_pawn_hash;
-};
-struct search_state {
-  uint16_t search_ply;
-  uint16_t fullmove_clock;
-  struct board_state board_states[MAX_SEARCH_PLY];
-};
 
 struct magic_square {
   uint64_t magic; 
@@ -76,47 +60,20 @@ struct magic_square {
   int attack_table_offset;
 };
 
-/* tests.c */
-void run_tests(void);
-
-/* fen.c */
-int parse_fen(struct search_state *state, const char *fen);
-/*
-void write_fen(const struct board *board, char *buf);
-*/
-
-/* utils.c */
-extern const char *square_names[64];
-extern const char piece_chars[];
-void *xmalloc(size_t len);
-void *xrealloc(void *p, size_t len);
-void print_bitmap(uint64_t bitmap);
-void print_move(Move move);
-/* void print_board(const struct board *board); */
-void read_buffer(char *buffer, int len);
-
-/* bitboards.c */
-extern uint64_t knight_attack_table[64];
-extern uint64_t king_attack_table[64];
-void print_best_magics(void);
-void init_bitboards(void);
-uint64_t get_rook_attack_set(int rook_square, uint64_t blockers);
-uint64_t get_bishop_attack_set(int bishop_square, uint64_t blockers);
-
-/* move_gen.c */
-Move *generate_moves(struct search_state *state, Move *moves);
-long perft(struct search_state *state, int depth, int print);
-Bitboard attack_set(const struct search_state *state, int color);
-
-/* make_move.c */
-void make_move(struct search_state *state, Move move);
-void unmake_move(struct search_state *state, Move move);
-
-/* evaluate.c */
-int evaluate_board(const struct search_state *state);
-
-/* find_move.c */
-Move find_move(struct search_state *state, int milliseconds);
+struct board {
+  int ply;
+  int fullmove_clock;
+  struct position {
+    Bitboard type_bitboards[6];
+    Bitboard color_bitboards[2];
+    uint8_t mailbox[32]; /* 4-bits per piece */
+    BoardFlags flags;
+    int16_t en_passant_square;
+    uint16_t halfmove_clock;
+    uint64_t pawn_hash, non_pawn_hash;
+    uint64_t attack_sets[2];
+  } stack[MAX_SEARCH_PLY];
+};
 
 /* zobrist_numbers.c */
 extern uint64_t zobrist_piece_numbers[2 * 6 * 64];
@@ -128,17 +85,38 @@ extern uint64_t zobrist_black_number;
 extern struct magic_square magic_squares[];
 extern uint64_t attack_table[142244];
 
-static inline uint64_t
-get_zobrist_piece_number(int color, int piece_type, int square)
-{
-  return zobrist_piece_numbers[color * 6 * 64 + piece_type * 64 + square];
-}
+/* utils.c */
+extern const char *square_names[64];
+extern const char piece_chars[];
+void *xmalloc(size_t len);
+void *xrealloc(void *p, size_t len);
+void print_bitmap(uint64_t bitmap);
+void print_move(Move move);
+void print_board(struct board *board);
+void read_buffer(char *buffer, int len);
 
-static inline uint64_t
-random_uint64(void)
-{
-  return random() | random() << 32;
-}
+/* bitboards.c */
+extern uint64_t knight_attack_table[64];
+extern uint64_t king_attack_table[64];
+void print_best_magics(void);
+void init_bitboards(void);
+uint64_t get_rook_attack_set(int rook_square, uint64_t blockers);
+uint64_t get_bishop_attack_set(int bishop_square, uint64_t blockers);
+
+/* board.c */
+int create_board(struct board *board, const char *fen);
+void board_push(struct board *board, Move move);
+void board_pop(struct board *board, Move move);
+int board_is_repetition(struct board *board);
+int board_moves(struct board *board, Move *moves);
+
+/* evaluate.c */
+int evaluate_board(struct board *board);
+
+/* find_move.c */
+Move find_move(struct board *board, int milliseconds);
+
+/* Bitboard inline functions */
 
 static inline int
 count_bits(Bitboard b)
@@ -178,7 +156,7 @@ pop_lss(Bitboard *b)
   return square;
 }
 static inline int
-check_square(int square)
+square_valid(int square)
 {
   return square >= 0 && square < 64;
 }
@@ -187,6 +165,9 @@ set_bit(int square)
 {
   return (uint64_t)1 << square;
 }
+
+/* Mailbox inline functions */
+
 static inline int
 get_piece_type(const uint8_t *mailbox, int square)
 {
@@ -207,6 +188,8 @@ set_piece_type(uint8_t *mailbox, int square, int piece_type)
     mailbox[square / 2] |= piece_type << 4;
   }
 }
+
+/* Move inline functions */
 
 static inline Move
 basic_move(int origin, int dest)
@@ -240,22 +223,62 @@ castle_move(int color, int king_side)
   return dest | (origin << 6) | (SPECIAL_MOVE_CASTLING << 12);
 }
 static inline int
-get_move_origin(Move move)
+move_origin(Move move)
 {
   return (move >> 6) & 0x3f;
 }
 static inline int
-get_move_dest(Move move)
+move_dest(Move move)
 {
   return move & 0x3f;
 }
 static inline int
-get_move_special_type(Move move)
+move_special_type(Move move)
 {
   return (move >> 12) & 0x03;
 }
 static inline int
-get_move_promote_piece(Move move)
+move_promote_piece(Move move)
 {
   return (move >> 14) & 0x03;
+}
+
+/* Board inline functions */
+
+static inline struct position *
+board_position(struct board *board)
+{
+  return &board->stack[board->ply];
+}
+static inline int
+board_turn(struct board *board)
+{
+  return (board_position(board)->flags & BOARD_FLAG_WHITE_TO_PLAY) ? COLOR_WHITE : COLOR_BLACK;
+}
+static inline int
+board_in_check(struct board *board)
+{
+  struct position *pos;
+  int col;
+  pos = board_position(board);
+  col = board_turn(board);
+  return (
+      pos->type_bitboards[PIECE_TYPE_KING]
+    & pos->color_bitboards[col]
+    & pos->attack_sets[!col]
+  ) ? 1 : 0;
+}
+
+/* Misc inline fucntions */
+
+static inline uint64_t
+get_zobrist_piece_number(int color, int piece_type, int square)
+{
+  return zobrist_piece_numbers[color * 6 * 64 + piece_type * 64 + square];
+}
+
+static inline uint64_t
+random_uint64(void)
+{
+  return random() | random() << 32;
 }

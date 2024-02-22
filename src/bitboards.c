@@ -60,7 +60,7 @@ init_knight_attack_table(void)
   for (i = 0; i < 64; i++) {
     knight_attack_table[i] = 0;
     for (j = 0; j < sizeof(moves) / sizeof(moves[0]); j++)
-      if (abs(i % 8 - (i + moves[j]) % 8) <= 2 && check_square(i + moves[j]))
+      if (abs(i % 8 - (i + moves[j]) % 8) <= 2 && square_valid(i + moves[j]))
         knight_attack_table[i] |= set_bit(i + moves[j]);
   }
 }
@@ -73,7 +73,7 @@ init_king_attack_table(void)
   for (i = 0; i < 64; i++) {
     king_attack_table[i] = 0;
     for (j = 0; j < sizeof(moves) / sizeof(moves[0]); j++)
-      if (abs(i % 8 - (i + moves[j]) % 8) <= 1 && check_square(i + moves[j]))
+      if (abs(i % 8 - (i + moves[j]) % 8) <= 1 && square_valid(i + moves[j]))
         king_attack_table[i] |= set_bit(i + moves[j]);
   }
 }
