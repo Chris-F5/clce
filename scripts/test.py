@@ -115,7 +115,7 @@ slow_tests = [
 ]
 
 try:
-  opts, args = getopt.getopt(sys.argv[1:], "m:", ["mode="])
+  opts, args = getopt.getopt(sys.argv[1:], "m:e:o:", ["mode="])
 except getopt.GetoptError:
   die_usage()
 for opt, arg in opts:
@@ -126,6 +126,10 @@ for opt, arg in opts:
       tests = slow_tests
     else:
       die_usage()
+  elif opt in ("-e"):
+    binary = arg
+  elif opt in ("-o"):
+    output = arg
 if tests == None:
   die_usage()
 
