@@ -14,12 +14,26 @@ def recv(stream, seconds: float) -> str | None:
       if ready:
         return stream.readline().strip()
 
-class CLCE:
+class Engine:
+  def restart(self):
+    pass
+  def name(self):
+    raise NotImplementedError()
+  def close(self):
+    pass
+  def go(self, board: chess.Board):
+    raise NotImplementedError()
+  def perft(self, board: chess.Board, depth: int) -> Dict[chess.Move, int]:
+    raise NotImplementedError()
+
+class CLCE(Engine):
   def __init__(self, binary: str, default_move_time :float = 4, verbose: bool=False):
     self.binary = binary
     self.verbose = verbose
     self.default_move_time = default_move_time
     self.start_binary()
+  def name(self):
+    return self.binary
   def start_binary(self):
     self.proc = subprocess.Popen([self.binary], stdin=subprocess.PIPE,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
