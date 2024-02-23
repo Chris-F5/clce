@@ -1,7 +1,6 @@
-from clce import CLCE, Engine
+import logging, json, sys, getopt
 import chess
-import logging
-import json
+from clce import CLCE, Engine
 
 class EngineTest:
   def configure(self):
@@ -97,13 +96,38 @@ def summarise_results(results):
     test_class = globals()[test_name]
     test_class.print_results(result)
 
+def die_usage():
+  print("test.py -mode {fast|slow}")
+  exit(1)
+
+
 logging.basicConfig(level=logging.INFO)
 binary = "./clce"
 output = "./test_result"
-tests = [
+tests = None
+fast_tests = [
   PerftTest(),
-  PuzzleTest("./db/lichess_db_puzzle.csv", 10),
+  PuzzleTest("./db/lichess_db_puzzle.csv", 5),
 ]
+slow_tests = [
+  PerftTest(),
+  PuzzleTest("./db/lichess_db_puzzle.csv", 100),
+]
+
+try:
+  opts, args = getopt.getopt(sys.argv[1:], "m:", ["mode="])
+except getopt.GetoptError:
+  die_usage()
+for opt, arg in opts:
+  if opt in ("-m", "--mode"):
+    if arg == "fast":
+      tests = fast_tests
+    elif arg == "slow":
+      tests = slow_tests
+    else:
+      die_usage()
+if tests == None:
+  die_usage()
 
 engine = CLCE(binary, 1, verbose=False)
 test_outcome = run_tests(engine, tests)
