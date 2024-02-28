@@ -71,12 +71,13 @@ class CLCE(Engine):
     if seconds == None:
       seconds = self.default_move_time
     milliseconds = (int)(seconds * 1000)
-    self.send_command(f"go:{board.fen()}:{milliseconds}")
+    self.send_command(f"go:{board.fen()}:{milliseconds}:_")
     result = self.wait_line(seconds + 2)
     move = chess.Move.from_uci(result)
     return move
-  def perft(self, board: chess.Board, depth: int) -> Dict[chess.Move, int]:
-    self.send_command(f"perft:{board.fen()}:{depth}")
+  def perft(self, board:chess.Board, depth:int, quiet:bool=False) -> Dict[chess.Move, int]:
+    flag = 'q' if quiet else '_'
+    self.send_command(f"perft:{board.fen()}:{depth}:{flag}")
     table = {}
     line = self.wait_line(60)
     if line.strip() == "":

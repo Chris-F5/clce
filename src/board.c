@@ -10,7 +10,7 @@
 #define SHIFT(v, s) ((s) < 0 ? (v) >> -(s) : (v) << (s))
 
 static Move *
-generate_pawn_moves(struct board *board, Move *moves)
+generate_pawn_moves(struct board *board, Move *moves, int gen_flags)
 {
   struct position *pos;
   Bitboard skip_rank, no_promote_ranks, promote_rank, my_pawns, their_all, empty;
@@ -39,63 +39,65 @@ generate_pawn_moves(struct board *board, Move *moves)
     origin = dest - forward * 2;
     *moves++ = basic_move(origin, dest);
   }
-  /* regular capture left/right */
-  move_1 = SHIFT(my_pawns & no_promote_ranks, forward + 1) & 0xfefefefefefefefe & their_all;
-  while (move_1) {
-    dest = pop_lss(&move_1);
-    origin = dest - (forward + 1);
-    *moves++ = basic_move(origin, dest);
-  }
-  move_1 = SHIFT(my_pawns & no_promote_ranks, forward - 1) & 0x7f7f7f7f7f7f7f7f & their_all;
-  while (move_1) {
-    dest = pop_lss(&move_1);
-    origin = dest - (forward - 1);
-    *moves++ = basic_move(origin, dest);
-  }
-  /* en passant */
-  if (pos->en_passant_square >= 0) {
-    dest = pos->en_passant_square;
-    move_1
-      = ((SHIFT(set_bit(dest), -forward + 1) & 0xfefefefefefefefe)
-      | (SHIFT(set_bit(dest), -forward - 1) & 0x7f7f7f7f7f7f7f7f)) & my_pawns;
+  if (gen_flags & GEN_FLAG_CAPTURES) {
+    /* regular capture left/right */
+    move_1 = SHIFT(my_pawns & no_promote_ranks, forward + 1) & 0xfefefefefefefefe & their_all;
     while (move_1) {
-      origin = pop_lss(&move_1);
-      *moves++ = en_passant_move(origin, dest);
+      dest = pop_lss(&move_1);
+      origin = dest - (forward + 1);
+      *moves++ = basic_move(origin, dest);
     }
-  }
-  /* promotion */
-  move_1 = SHIFT(my_pawns & promote_rank, forward) & empty;
-  while (move_1) {
-    dest = pop_lss(&move_1);
-    origin = dest - forward;
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_KNIGHT);
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_BISHOP);
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_ROOK);
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_QUEEN);
-  }
-  move_1 = SHIFT(my_pawns & promote_rank, forward + 1) & 0xfefefefefefefefe & their_all;
-  while (move_1) {
-    dest = pop_lss(&move_1);
-    origin = dest - (forward + 1);
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_KNIGHT);
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_BISHOP);
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_ROOK);
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_QUEEN);
-  }
-  move_1 = SHIFT(my_pawns & promote_rank, forward - 1) & 0x7f7f7f7f7f7f7f7f & their_all;
-  while (move_1) {
-    dest = pop_lss(&move_1);
-    origin = dest - (forward - 1);
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_KNIGHT);
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_BISHOP);
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_ROOK);
-    *moves++ = promote_move(origin, dest, PIECE_TYPE_QUEEN);
+    move_1 = SHIFT(my_pawns & no_promote_ranks, forward - 1) & 0x7f7f7f7f7f7f7f7f & their_all;
+    while (move_1) {
+      dest = pop_lss(&move_1);
+      origin = dest - (forward - 1);
+      *moves++ = basic_move(origin, dest);
+    }
+    /* en passant */
+    if (pos->en_passant_square >= 0) {
+      dest = pos->en_passant_square;
+      move_1
+        = ((SHIFT(set_bit(dest), -forward + 1) & 0xfefefefefefefefe)
+        | (SHIFT(set_bit(dest), -forward - 1) & 0x7f7f7f7f7f7f7f7f)) & my_pawns;
+      while (move_1) {
+        origin = pop_lss(&move_1);
+        *moves++ = en_passant_move(origin, dest);
+      }
+    }
+    /* promotion */
+    move_1 = SHIFT(my_pawns & promote_rank, forward) & empty;
+    while (move_1) {
+      dest = pop_lss(&move_1);
+      origin = dest - forward;
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_KNIGHT);
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_BISHOP);
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_ROOK);
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_QUEEN);
+    }
+    move_1 = SHIFT(my_pawns & promote_rank, forward + 1) & 0xfefefefefefefefe & their_all;
+    while (move_1) {
+      dest = pop_lss(&move_1);
+      origin = dest - (forward + 1);
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_KNIGHT);
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_BISHOP);
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_ROOK);
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_QUEEN);
+    }
+    move_1 = SHIFT(my_pawns & promote_rank, forward - 1) & 0x7f7f7f7f7f7f7f7f & their_all;
+    while (move_1) {
+      dest = pop_lss(&move_1);
+      origin = dest - (forward - 1);
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_KNIGHT);
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_BISHOP);
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_ROOK);
+      *moves++ = promote_move(origin, dest, PIECE_TYPE_QUEEN);
+    }
   }
   return moves;
 }
 
 static Move *
-generate_knight_moves(struct board *board, Move *moves)
+generate_knight_moves(struct board *board, Move *moves, int gen_flags)
 {
   struct position *pos;
   uint64_t knights, attacks;
@@ -106,6 +108,8 @@ generate_knight_moves(struct board *board, Move *moves)
   while (knights) {
     origin = pop_lss(&knights);
     attacks = knight_attack_table[origin] & ~pos->color_bitboards[col];
+    if ( (gen_flags & GEN_FLAG_CAPTURES) == 0)
+      attacks &= ~pos->color_bitboards[!col];
     while (attacks) {
       dest = pop_lss(&attacks);
       *moves++ = basic_move(origin, dest);
@@ -143,7 +147,7 @@ generate_king_moves(struct board *board, Move *moves)
 }
 
 static Move *
-generate_bishop_moves(struct board *board, Move *moves)
+generate_bishop_moves(struct board *board, Move *moves, int gen_flags)
 {
   struct position *pos;
   uint64_t bishops, attacks;
@@ -156,6 +160,8 @@ generate_bishop_moves(struct board *board, Move *moves)
     attacks
       = get_bishop_attack_set(origin, pos->color_bitboards[0] | pos->color_bitboards[1])
       & ~pos->color_bitboards[col];
+    if ( (gen_flags & GEN_FLAG_CAPTURES) == 0)
+      attacks &= ~pos->color_bitboards[!col];
     while (attacks) {
       dest = pop_lss(&attacks);
       *moves++ = basic_move(origin, dest);
@@ -165,7 +171,7 @@ generate_bishop_moves(struct board *board, Move *moves)
 }
 
 static Move *
-generate_rook_moves(struct board *board, Move *moves)
+generate_rook_moves(struct board *board, Move *moves, int gen_flags)
 {
   struct position *pos;
   uint64_t rooks, attacks;
@@ -178,6 +184,8 @@ generate_rook_moves(struct board *board, Move *moves)
     attacks
       = get_rook_attack_set(origin, pos->color_bitboards[0] | pos->color_bitboards[1])
       & ~pos->color_bitboards[col];
+    if ( (gen_flags & GEN_FLAG_CAPTURES) == 0)
+      attacks &= ~pos->color_bitboards[!col];
     while (attacks) {
       dest = pop_lss(&attacks);
       *moves++ = basic_move(origin, dest);
@@ -187,7 +195,7 @@ generate_rook_moves(struct board *board, Move *moves)
 }
 
 static Move *
-generate_queen_moves( struct board *board, Move *moves)
+generate_queen_moves(struct board *board, Move *moves, int gen_flags)
 {
   struct position *pos;
   uint64_t queens, attacks;
@@ -201,6 +209,8 @@ generate_queen_moves( struct board *board, Move *moves)
       = (get_rook_attack_set(origin, pos->color_bitboards[0] | pos->color_bitboards[1])
       | get_bishop_attack_set(origin, pos->color_bitboards[0] | pos->color_bitboards[1]))
       & ~pos->color_bitboards[col];
+    if ( (gen_flags & GEN_FLAG_CAPTURES) == 0)
+      attacks &= ~pos->color_bitboards[!col];
     while (attacks) {
       dest = pop_lss(&attacks);
       *moves++ = basic_move(origin, dest);
@@ -575,7 +585,7 @@ board_is_repetition(struct board *board)
 }
 
 int
-board_moves(struct board *board, Move *moves)
+board_moves(struct board *board, Move *moves, int gen_flags)
 {
   struct position *pos, *new_pos;
   int col, king_sq;
@@ -585,11 +595,11 @@ board_moves(struct board *board, Move *moves)
   base = legal_moves = moves;
   king_sq = lss(pos->type_bitboards[PIECE_TYPE_KING] & pos->color_bitboards[col]);
 
-  moves = generate_pawn_moves(board, moves);
-  moves = generate_knight_moves(board, moves);
-  moves = generate_bishop_moves(board, moves);
-  moves = generate_rook_moves(board, moves);
-  moves = generate_queen_moves(board, moves);
+  moves = generate_pawn_moves(board, moves, gen_flags);
+  moves = generate_knight_moves(board, moves, gen_flags);
+  moves = generate_bishop_moves(board, moves, gen_flags);
+  moves = generate_rook_moves(board, moves, gen_flags);
+  moves = generate_queen_moves(board, moves, gen_flags);
   moves = generate_king_moves(board, moves);
   while (legal_moves != moves) {
     if (!board_in_check(board)

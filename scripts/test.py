@@ -11,6 +11,42 @@ class EngineTest:
     pass
 
 class PerftTest(EngineTest):
+  def legal_moves(board:chess.Board, quiet:bool):
+    if quiet:
+      return set(move for move in board.legal_moves \
+           if not board.is_capture(move) \
+          and not move.promotion \
+          or board.piece_type_at(move.from_square) == chess.KING)
+    else:
+      return set(board.legal_moves)
+  def perft(board:chess.Board, depth:int, quiet=False):
+    if depth == 0:
+      return 1
+    count = 0
+    for move in PerftTest.legal_moves(board, quiet):
+      board.push(move)
+      count += PerftTest.perft(board, depth-1, quiet)
+      board.pop()
+    return count
+  def locate_perft_error(engine:CLCE, board:chess.Board, depth:int, quiet:bool):
+    if depth == 0:
+      return
+    reported = engine.perft(board, depth, quiet)
+    reported_moves = set(reported.keys())
+    true_moves =  PerftTest.legal_moves(board, quiet)
+    if reported_moves != true_moves:
+      print("PERFT ERROR:")
+      if quiet: print("  quiet moves only")
+      print(f"  position: {board.fen()}")
+      print(f"  false negative: {true_moves.difference(reported_moves)}")
+      print(f"  false positive: {reported_moves.difference(true_moves)}")
+    for move in true_moves:
+      board.push(move)
+      if PerftTest.perft(board, depth-1, quiet) != reported[move]:
+        logging.warning("perft discontinuity detected at {board.fen()}")
+        PerftTest.locate_perft_error(engine, board, depth-1, quiet)
+      board.pop()
+    
   def configure(self):
     self.perfts = [
       {'board': "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 'depth': 4, 'value': 197281},
@@ -20,13 +56,20 @@ class PerftTest(EngineTest):
       {'board': "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1", 'depth': 5, 'value': 15833292},
       {'board': "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 'depth': 4, 'value': 2103487},
       {'board': "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", 'depth': 4, 'value': 3894594},
+      {'board': '2r2rk1/pbq1bppp/8/8/2p1N3/P1Bn2P1/2Q2PBP/1R3RK1 w - - 4 24', 'depth': 4, 'value': 3188425, 'quiet': True}
     ]
-  def run_test(self, engine: Engine):
+  def run_test(self, engine: CLCE):
     for i,perft in enumerate(self.perfts):
-      logging.info(f"perft {i+1}/{len(self.perfts)}")
       board = chess.Board(perft['board'])
-      result = sum(engine.perft(board, perft['depth']).values())
-      assert(result == perft['value'])
+      depth = perft['depth']
+      expected = perft['value']
+      quiet = perft.get('quiet', False)
+      logging.info(f"perft {i+1}/{len(self.perfts)}")
+      result = sum(engine.perft(board, depth, quiet).values())
+      if result != expected:
+        logging.warning("perft failed, locating error...")
+        PerftTest.locate_perft_error(engine, board, depth, quiet)
+        raise AssertionError()
     return self.perfts
 
 class PuzzleTest(EngineTest):
@@ -49,11 +92,12 @@ class PuzzleTest(EngineTest):
     for i,puzzle in enumerate(self.puzzles):
       board = puzzle['board']
       board.push(puzzle['moves'][0])
+      fen = board.fen()
       color = board.turn
       move = engine.go(board)
       board.push(move)
       success = bool(move == puzzle['moves'][1] or (board.outcome() and board.outcome().winner == color))
-      results['puzzles'].append({'fen': puzzle['board'].fen(), 'rating': puzzle['rating'], 'success': success})
+      results['puzzles'].append({'fen': fen, 'rating': puzzle['rating'], 'success': success})
       logging.info(f"puzzle {i+1}/{len(self.puzzles)} {'success' if success else 'fail'}")
     return results
   def print_results(results):
@@ -113,9 +157,10 @@ slow_tests = [
   PerftTest(),
   PuzzleTest("./db/lichess_db_puzzle.csv", 100),
 ]
+verbose = False
 
 try:
-  opts, args = getopt.getopt(sys.argv[1:], "m:e:o:", ["mode="])
+  opts, args = getopt.getopt(sys.argv[1:], "m:e:o:v", ["mode="])
 except getopt.GetoptError:
   die_usage()
 for opt, arg in opts:
@@ -130,10 +175,12 @@ for opt, arg in opts:
     binary = arg
   elif opt in ("-o"):
     output = arg
+  elif opt in ("-v"):
+    verbose = True
 if tests == None:
   die_usage()
 
-engine = CLCE(binary, 1, verbose=False)
+engine = CLCE(binary, 1, verbose=verbose)
 test_outcome = run_tests(engine, tests)
 engine.close()
 save_output(output, test_outcome)

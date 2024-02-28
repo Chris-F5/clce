@@ -43,6 +43,8 @@
 #define MAX_SEARCH_PLY 128
 #define CHECKMATE_EVALUATION 655535
 
+#define GEN_FLAG_CAPTURES 1
+
 typedef uint64_t Bitboard;
 typedef uint16_t BoardFlags;
 
@@ -108,13 +110,13 @@ int create_board(struct board *board, const char *fen);
 void board_push(struct board *board, Move move);
 void board_pop(struct board *board, Move move);
 int board_is_repetition(struct board *board);
-int board_moves(struct board *board, Move *moves);
+int board_moves(struct board *board, Move *moves, int gen_flags);
 
 /* evaluate.c */
 int evaluate_board(struct board *board);
 
 /* find_move.c */
-Move find_move(struct board *board, int milliseconds);
+Move find_move(struct board *board, int milliseconds, int verbose);
 
 /* Bitboard inline functions */
 
