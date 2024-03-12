@@ -17,7 +17,7 @@ minimax(struct board *board, int depth, int cutoff_depth, int alpha, int beta,
   move_count = board_moves(board, moves, ~0);
   if (move_count == 0) {
     assert(best_move == NULL);
-    return col ? -CHECKMATE_EVALUATION : CHECKMATE_EVALUATION;
+    return col ? -(CHECKMATE_EVALUATION - board->ply) : (CHECKMATE_EVALUATION - board->ply);
   }
   for (i = 0; i < move_count; i++) {
     board_push(board, moves[i]);
