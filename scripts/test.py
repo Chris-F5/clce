@@ -1,6 +1,8 @@
 import logging, json, sys, getopt
 import chess
+import chess.pgn
 from clce import CLCE, Engine
+from stockfish import Stockfish
 
 class EngineTest:
   def configure(self):
@@ -105,6 +107,50 @@ class PuzzleTest(EngineTest):
     successes = sum(p['success'] for p in puzzles)
     print(f"Succeeded {successes}/{len(puzzles)} puzzles.")
 
+class StockfishTest(EngineTest):
+  def __init__(self, game_count, pgn_fname, elo):
+    self.game_count = game_count
+    self.pgn_fname = pgn_fname
+    self.elo = elo
+  def configure(self):
+    self.stockfish = Stockfish()
+    self.stockfish.set_elo_rating(self.elo)
+    self.start_boards = []
+    pgn_file = open(self.pgn_fname, 'r')
+    for i in range(self.game_count):
+      game = chess.pgn.read_game(pgn_file)
+      assert game != None
+      board = game.board()
+      for move in list(game.mainline_moves())[:20]:
+        board.push(move)
+      self.start_boards.append(board)
+    pgn_file.close()
+  def play_game(self, start_board, engine: Engine, engine_color):
+    moves = []
+    board = start_board.copy()
+    while not board.outcome():
+      if board.turn == engine_color:
+        move = engine.go(board)
+      else:
+        self.stockfish.set_fen_position(board.fen())
+        uci = self.stockfish.get_best_move()
+        move = chess.Move.from_uci(uci)
+      moves.append(move)
+      board.push(move)
+    pgn = "[Variant \"From Position\"]\n"
+    pgn += f"[FEN \"{start_board.fen()}\"]\n"
+    pgn += start_board.variation_san(moves) + "\n"
+    return board.outcome(),pgn
+  def run_test(self, engine: Engine):
+    results = {'games': []}
+    for i,start_board in enumerate(self.start_boards):
+      logging.info(f"stockfish game {i+1}/{self.game_count}")
+      outcome,san = self.play_game(start_board, engine, chess.WHITE)
+      results['games'].append({'won': outcome.winner == chess.WHITE, 'pgn':san})
+    return results
+  def print_results(results):
+    print(results)
+
 def run_tests(engine: Engine, tests: []) -> []:
   fail = 0
   logging.info(f"TESTING '{engine.name()}'...")
@@ -153,6 +199,9 @@ fast_tests = [
   PerftTest(),
   PuzzleTest("./db/lichess_db_puzzle.csv", 5),
 ]
+game_tests = [
+  StockfishTest(1, "./db/SaintLouis2023.pgn", 1000),
+]
 slow_tests = [
   PerftTest(),
   PuzzleTest("./db/lichess_db_puzzle.csv", 100),
@@ -169,6 +218,8 @@ for opt, arg in opts:
       tests = fast_tests
     elif arg == "slow":
       tests = slow_tests
+    elif arg == "games":
+      tests = game_tests
     else:
       die_usage()
   elif opt in ("-e"):
@@ -180,7 +231,7 @@ for opt, arg in opts:
 if tests == None:
   die_usage()
 
-engine = CLCE(binary, 1, verbose=verbose)
+engine = CLCE(binary, 0.1, verbose=verbose)
 test_outcome = run_tests(engine, tests)
 engine.close()
 save_output(output, test_outcome)
