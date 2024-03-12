@@ -108,7 +108,7 @@ class PuzzleTest(EngineTest):
     print(f"Succeeded {successes}/{len(puzzles)} puzzles.")
 
 class StockfishTest(EngineTest):
-  def __init__(self, game_count, pgn_fname, elo):
+  def __init__(self, game_count, elo, pgn_fname):
     self.game_count = game_count
     self.pgn_fname = pgn_fname
     self.elo = elo
@@ -142,14 +142,25 @@ class StockfishTest(EngineTest):
     pgn += start_board.variation_san(moves) + "\n"
     return board.outcome(),pgn
   def run_test(self, engine: Engine):
-    results = {'games': []}
+    results = {'games': [], 'elo': self.elo}
     for i,start_board in enumerate(self.start_boards):
       logging.info(f"stockfish game {i+1}/{self.game_count}")
       outcome,san = self.play_game(start_board, engine, chess.WHITE)
-      results['games'].append({'won': outcome.winner == chess.WHITE, 'pgn':san})
+      won = None if outcome.winner == None else (outcome.winner == chess.WHITE)
+      results['games'].append({'won': won, 'pgn':san})
     return results
   def print_results(results):
-    print(results)
+    won = drew = lost = 0
+    count = len(results['games'])
+    for i,game in enumerate(results['games']):
+      if game['won']:
+        won += 1
+      elif game['won'] == False:
+        lost += 1
+      else:
+        drew += 1
+    print(f"played {count} games against elo {results['elo']}")
+    print(f"won {won/count:.2f}, draw {drew/count:.2f}, lost {lost/count:.2f}")
 
 def run_tests(engine: Engine, tests: []) -> []:
   fail = 0
@@ -200,7 +211,7 @@ fast_tests = [
   PuzzleTest("./db/lichess_db_puzzle.csv", 5),
 ]
 game_tests = [
-  StockfishTest(1, "./db/SaintLouis2023.pgn", 1000),
+  StockfishTest(3, 1000, "./db/SaintLouis2023.pgn"),
 ]
 slow_tests = [
   PerftTest(),
@@ -231,7 +242,7 @@ for opt, arg in opts:
 if tests == None:
   die_usage()
 
-engine = CLCE(binary, 0.1, verbose=verbose)
+engine = CLCE(binary, 0.2, verbose=verbose)
 test_outcome = run_tests(engine, tests)
 engine.close()
 save_output(output, test_outcome)
